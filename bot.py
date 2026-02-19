@@ -1,22 +1,36 @@
-import asyncio
+import os  # <-- Этой строки не хватало
 import logging
-from aiogram import Bot, Dispatcher, types
+from telegram import Bot, Update
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
 # Настройка логирования
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
 # Получаем токен из переменных окружения
 TOKEN = os.getenv('BOT_TOKEN')
 
-bot = Bot(token=TOKEN)
-dp = Dispatcher()
+if not TOKEN:
+    raise ValueError("No BOT_TOKEN found in environment variables!")
 
-@dp.message()
-async def echo(message: types.Message):
-    await message.answer(f"Ты написал: {message.text}")
+# Создаем приложение
+application = Application.builder().token(TOKEN).build()
 
-async def main():
-    await dp.start_polling(bot)
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text('Привет! Я бот!')
+
+async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(f'Ты написал: {update.message.text}')
+
+def main():
+    # Добавляем обработчики
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+    
+    # Запускаем бота
+    application.run_polling()
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    main()
